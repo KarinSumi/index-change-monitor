@@ -3,8 +3,7 @@ name: Check Index Changes
 on:
   # รันทุกวันเวลา 22:00 UTC (5:00 น. เวลาไทย)
   schedule:
-    - cron: '0 14 * * *'  # 21:00 น. เวลาไทย (14:00 UTC)
-    - cron: '0 22 * * *'  # 05:00 น. เวลาไทย (22:00 UTC)
+    - cron: '0 22 * * *'
   
   # สามารถรันด้วยตัวเองได้จากหน้า Actions
   workflow_dispatch:
@@ -31,7 +30,7 @@ jobs:
     
     - name: Run check script
       env:
-        LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       run: python check_index.py
     
     - name: Commit and push if changed
@@ -42,39 +41,48 @@ jobs:
         git diff --quiet && git diff --staged --quiet || (git commit -m "Update index data [skip ci]" && git push)
 ```
 
-## Step 6: ตั้งค่า LINE Notify
+4. กด **"Commit changes..."**
 
-1. ไปที่ https://notify-bot.line.me/
-2. Login ด้วย LINE
-3. กด "My page" มุมขวาบน
-4. กด "Generate token"
-5. ตั้งชื่อ เช่น "Index Monitor"
-6. เลือกส่งไปที่ "1-on-1 chat with LINE Notify" หรือกลุ่มที่ต้องการ
-7. กด "Generate token"
-8. **คัดลอก token** (จะแสดงครั้งเดียว)
+---
 
-## Step 7: เพิ่ม Secret ใน GitHub
+## Step 6: เพิ่ม Discord Webhook ใน Secrets 🔐
 
-1. ไปที่ repo ของคุณบน GitHub
-2. คลิก **Settings** (แท็บบนสุด)
-3. ไปที่ **Secrets and variables** > **Actions**
-4. กด **New repository secret**
-5. ใส่:
-   - Name: `LINE_NOTIFY_TOKEN`
-   - Secret: (token ที่คัดลอกมา)
-6. กด **Add secret**
+**นี่คือส่วนสำคัญที่สุด!**
 
-## Step 8: ทดสอบรัน
+1. ไปที่แท็บ **"Settings"** ของ repo (บนสุด)
+2. คลิกที่ **"Secrets and variables"** → **"Actions"** (เมนูซ้าย)
+3. กด **"New repository secret"** (ปุ่มสีเขียว)
+4. กรอกข้อมูล:
+   - **Name:** `DISCORD_WEBHOOK`
+   - **Secret:** `https://discord.com/api/webhooks/1453983739112722566/_-TZqiWqZkHObp9t2chSDDe8er6WhKVw9pzKGfyRlEc4XB...` (วาง Webhook URL ทั้งหมดของคุณ)
+5. กด **"Add secret"**
 
-1. ไปที่แท็บ **Actions** ใน repo
-2. เลือก workflow "Check Index Changes"
-3. กด **Run workflow** > **Run workflow**
-4. รอสักครู่ จะเห็นผลการรัน
-5. ถ้าสำเร็จจะได้ notification ทาง LINE
+✅ ตอนนี้ Webhook ของคุณปลอดภัยแล้ว! ไม่มีใครเห็นได้
+
+---
+
+## Step 7: ทดสอบรัน 🚀
+
+1. ไปที่แท็บ **"Actions"** (บนสุด)
+2. คลิกที่ **"Check Index Changes"** (ด้านซ้าย)
+3. กด **"Run workflow"** (ปุ่มสีน้ำเงิน)
+4. กด **"Run workflow"** อีกครั้ง (ใน dropdown)
+5. รอสักครู่ (ประมาณ 1-2 นาที)
+
+### ดูผลการรัน:
+- คลิกที่ job ที่กำลังรัน (จะมีจุดสีเหลืองหมุน)
+- คลิกที่ **"check"**
+- คลิกที่ **"Run check script"** เพื่อดู log
+
+### ถ้าสำเร็จ:
+- ✅ จะเห็นสีเขียว
+- 🔔 จะได้รับข้อความใน Discord!
+
+---
 
 ## โครงสร้างไฟล์ทั้งหมด
 ```
-index-change-monitor/
+index-monitor-bot/
 ├── .github/
 │   └── workflows/
 │       └── check-index.yml
@@ -82,3 +90,32 @@ index-change-monitor/
 ├── requirements.txt
 ├── previous_data.json
 └── README.md
+```
+
+---
+
+## ตัวอย่างข้อความที่จะได้รับใน Discord
+
+**ครั้งแรก:**
+```
+🚀 เริ่มต้นติดตาม Index Changes
+
+📊 S&P 500: 503 หุ้น
+📊 Nasdaq-100: 100 หุ้น
+
+✅ Bot พร้อมทำงานแล้ว! จะตรวจสอบทุกวันเวลา 05:00 น.
+```
+
+**เมื่อมีการเปลี่ยนแปลง:**
+```
+🔔 S&P 500 มีการเปลี่ยนแปลง!
+📅 วันที่: 2024-12-26 22:05:30
+
+✅ เพิ่มเข้า S&P 500:
+  • NVDA
+  • TSLA
+
+❌ ถอดออกจาก S&P 500:
+  • XYZ
+
+📊 จำนวนปัจจุบัน: 503 หุ้น
