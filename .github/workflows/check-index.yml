@@ -54,7 +54,7 @@ jobs:
 3. กด **"New repository secret"** (ปุ่มสีเขียว)
 4. กรอกข้อมูล:
    - **Name:** `DISCORD_WEBHOOK`
-   - **Secret:** `https://discord.com/api/webhooks/1453983739112722566/_-TZqiWqZkHObp9t2chSDDe8er6WhKVw9pzKGfyRlEc4XB...` (วาง Webhook URL ทั้งหมดของคุณ)
+   - **Secret:** `https://discord.com/api/webhooks/1453983739112722566/_-TZqiWqZkHObp9t2chSDDe8er6WhKVw9pzKGfyRlEc4XBmc0O25h5yUK17fPZaZVv0H` (วาง Webhook URL ทั้งหมดของคุณ)
 5. กด **"Add secret"**
 
 ✅ ตอนนี้ Webhook ของคุณปลอดภัยแล้ว! ไม่มีใครเห็นได้
