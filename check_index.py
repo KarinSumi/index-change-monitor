@@ -3,6 +3,11 @@ import json
 import os
 from datetime import datetime
 
+def send_discord(message):
+    webhook_url = os.environ.get('DISCORD_WEBHOOK')
+    if webhook_url:
+        requests.post(webhook_url, json={"content": message})
+
 # ฟังก์ชันส่ง LINE Notify
 def send_line_notify(message):
     line_token = os.environ.get('LINE_NOTIFY_TOKEN')
