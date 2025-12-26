@@ -1,9 +1,18 @@
 import requests
 import json
 import os
+import io
 from datetime import datetime, timedelta
 import feedparser
 from bs4 import BeautifulSoup
+import pandas as pd # ย้ายมา import ข้างบนเพื่อความชัวร์
+
+# ==================== CONFIGURATION ====================
+
+# Header เพื่อหลอก Server ว่าเราเป็น Browser (แก้ปัญหา Wikipedia Block)
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+}
 
 # ==================== NOTIFICATION FUNCTIONS ====================
 
@@ -97,10 +106,8 @@ def scrape_sp_announcements():
     
     try:
         url = "https://www.spglobal.com/spdji/en/media-center/news-announcements/"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        response = requests.get(url, headers=headers, timeout=15)
+        # ใช้ Global HEADERS
+        response = requests.get(url, headers=HEADERS, timeout=15)
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -188,10 +195,12 @@ def fetch_sp500_list():
     """
     try:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        response = requests.get(url, timeout=10)
+        # ใส่ Headers เพื่อแก้ปัญหา 0 stocks
+        response = requests.get(url, headers=HEADERS, timeout=15)
+        response.raise_for_status()
         
-        import pandas as pd
-        tables = pd.read_html(response.text)
+        # ใช้ io.StringIO เพื่อ parse HTML
+        tables = pd.read_html(io.StringIO(response.text))
         df = tables[0]
         
         symbols = df['Symbol'].tolist()
@@ -209,15 +218,36 @@ def fetch_nasdaq100_list():
     """
     try:
         url = "https://en.wikipedia.org/wiki/Nasdaq-100"
-        response = requests.get(url, timeout=10)
+        # ใส่ Headers เพื่อแก้ปัญหา 0 stocks
+        response = requests.get(url, headers=HEADERS, timeout=15)
+        response.raise_for_status()
         
-        import pandas as pd
-        tables = pd.read_html(response.text)
-        df = tables[4]
+        # ใช้ io.StringIO เพื่อ parse HTML
+        tables = pd.read_html(io.StringIO(response.text))
         
-        symbols = df['Ticker'].tolist()
-        print(f"  ✅ Wikipedia Nasdaq-100: {len(symbols)} หุ้น")
-        return set(symbols)
+        # หมายเหตุ: Nasdaq Index บน Wiki อาจขยับตำแหน่งได้ (ปกติ 4)
+        target_table = None
+        for table in tables:
+            # หาตารางที่มี col ชื่อ Ticker หรือ Symbol
+            if 'Ticker' in table.columns:
+                target_table = table
+                break
+            elif 'Symbol' in table.columns:
+                target_table = table
+                break
+        
+        if target_table is not None:
+            if 'Ticker' in target_table.columns:
+                symbols = target_table['Ticker'].tolist()
+            else:
+                symbols = target_table['Symbol'].tolist()
+            
+            print(f"  ✅ Wikipedia Nasdaq-100: {len(symbols)} หุ้น")
+            return set(symbols)
+        else:
+            print("  ⚠️ Wikipedia Nasdaq-100: ไม่พบตารางหุ้น")
+            return set()
+            
     except Exception as e:
         print(f"  ❌ Wikipedia Nasdaq-100 Error: {e}")
         return set()
@@ -341,7 +371,7 @@ def main():
     previous_sp500 = set(previous_data.get('sp500', []))
     previous_nasdaq100 = set(previous_data.get('nasdaq100', []))
     
-    # ถ้าเป็นครั้งแรก
+    # ถ้าเป็นครั้งแรก หรือ ข้อมูลเก่าว่างเปล่า (กรณี error 0 ครั้งก่อน)
     if not previous_sp500 and not previous_nasdaq100:
         print("\n🚀 ครั้งแรก: บันทึกข้อมูลเริ่มต้น")
         save_current_data({
