@@ -1,0 +1,84 @@
+name: Check Index Changes
+
+on:
+  # รันทุกวันเวลา 22:00 UTC (5:00 น. เวลาไทย)
+  schedule:
+    - cron: '0 14 * * *'  # 21:00 น. เวลาไทย (14:00 UTC)
+    - cron: '0 22 * * *'  # 05:00 น. เวลาไทย (22:00 UTC)
+  
+  # สามารถรันด้วยตัวเองได้จากหน้า Actions
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run check script
+      env:
+        LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+      run: python check_index.py
+    
+    - name: Commit and push if changed
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add previous_data.json
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update index data [skip ci]" && git push)
+```
+
+## Step 6: ตั้งค่า LINE Notify
+
+1. ไปที่ https://notify-bot.line.me/
+2. Login ด้วย LINE
+3. กด "My page" มุมขวาบน
+4. กด "Generate token"
+5. ตั้งชื่อ เช่น "Index Monitor"
+6. เลือกส่งไปที่ "1-on-1 chat with LINE Notify" หรือกลุ่มที่ต้องการ
+7. กด "Generate token"
+8. **คัดลอก token** (จะแสดงครั้งเดียว)
+
+## Step 7: เพิ่ม Secret ใน GitHub
+
+1. ไปที่ repo ของคุณบน GitHub
+2. คลิก **Settings** (แท็บบนสุด)
+3. ไปที่ **Secrets and variables** > **Actions**
+4. กด **New repository secret**
+5. ใส่:
+   - Name: `LINE_NOTIFY_TOKEN`
+   - Secret: (token ที่คัดลอกมา)
+6. กด **Add secret**
+
+## Step 8: ทดสอบรัน
+
+1. ไปที่แท็บ **Actions** ใน repo
+2. เลือก workflow "Check Index Changes"
+3. กด **Run workflow** > **Run workflow**
+4. รอสักครู่ จะเห็นผลการรัน
+5. ถ้าสำเร็จจะได้ notification ทาง LINE
+
+## โครงสร้างไฟล์ทั้งหมด
+```
+index-change-monitor/
+├── .github/
+│   └── workflows/
+│       └── check-index.yml
+├── check_index.py
+├── requirements.txt
+├── previous_data.json
+└── README.md
